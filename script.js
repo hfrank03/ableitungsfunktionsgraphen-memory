@@ -42,16 +42,15 @@
   }
 
   function generatePolynomial(degree){
-    // kleine, "schöne" Leitkoeffizienten je nach Grad
-    const leadOptions = degree<=2 ? [1,1,1,-1,2,-2] :
-                         degree===3 ? [1,1,-1,1,-2] :
-                         degree===4 ? [1,1,-1,0.5,-0.5] :
-                                       [1,1,-1,0.5,-0.5]; // Grad 5
+    // kleine, ruhige Leitkoeffizienten fuer besonders einfache, gut
+    // erkennbare Kurvenformen
+    const leadOptions = degree<=2 ? [1,1,1,-1,-1] :
+                                     [1,1,-1]; // Grad 3
     let leadCoeff = leadOptions[randInt(0,leadOptions.length-1)];
 
-    // Nullstellen aus kleiner, "schöner" Menge wählen (auch mit Wiederholung
-    // fuer Beruehrpunkte, aber nicht mehr als 2x dieselbe)
-    const rootPool = [-3,-2,-2,-1,-1,0,0,1,1,2,2,3];
+    // Nullstellen aus einer kleinen, engen Menge waehlen -> sanftere,
+    // einfachere Kurvenverlaeufe
+    const rootPool = [-2,-1,-1,0,0,0,1,1,2];
     let roots = [];
     let usedCount = {};
     let tries = 0;
@@ -64,7 +63,7 @@
       roots.push(r);
     }
     while(roots.length < degree){
-      roots.push(randInt(-3,3));
+      roots.push(randInt(-2,2));
     }
 
     // Polynom aus Nullstellen aufbauen: leadCoeff * Produkt (x - r_i)
@@ -78,7 +77,6 @@
       poly[0] += randInt(-1,1);
     }
 
-    // Koeffizienten auf 2 Nachkommastellen runden (falls halbe Leitkoeff.)
     poly = poly.map(c=> Math.round(c*100)/100);
 
     return poly;
@@ -91,8 +89,8 @@
     const SIMILARITY_THRESHOLD = 0.0025; // je kleiner, desto strenger
 
     let attempts = 0;
-    // Grade gleichmaessig aus 2..5 verteilen
-    const degreeCycle = [2,3,4,5];
+    // Nur Grad 2 (Parabeln) und Grad 3 (einfache Kubiken) fuer einfachere Formen
+    const degreeCycle = [2,3];
     let cycleIdx = 0;
     while(pairs.length < count && attempts < 4000){
       attempts++;
@@ -158,7 +156,7 @@
     const acceptedShapes = existingShapes.slice();
     const RELAXED_THRESHOLD = 0.0008; // strenger als vorher gelockert gemeint als Mindestabstand
     let attempts = 0;
-    const degreeCycle = [2,3,4,5];
+    const degreeCycle = [2,3];
     let cycleIdx = 0;
     while(pairs.length < count && attempts < 3000){
       attempts++;
@@ -186,21 +184,17 @@
     return pairs;
   }
 
-  // Fest hinterlegte, garantiert unterschiedlich geformte "schöne" Polynome
-  // (Grad 2 bis 5) als allerletztes Sicherheitsnetz, damit die Kartenanzahl
+  // Fest hinterlegte, garantiert unterschiedlich geformte, einfache Polynome
+  // (Grad 2 und 3) als allerletztes Sicherheitsnetz, damit die Kartenanzahl
   // niemals ungerade wird bzw. Paare fehlen.
   const HARDCODED_FALLBACK_F = [
     [0,0,1],            // x^2
     [-4,0,1],           // x^2 - 4
+    [1,0,-1],           // -x^2 + 1
     [0,0,0,1],          // x^3
     [0,-3,0,1],         // x^3 - 3x
-    [0,0,0,0,1],        // x^4
-    [-1,0,2,0,-1],      // -x^4 + 2x^2 - 1
-    [0,0,0,0,0,1].slice(0,5).concat([1]), // Platzhalter, wird unten ersetzt
-    [0,1,0,0,0,-1]      // -x^5 + x
+    [0,1,0,-1]          // -x^3 + x
   ];
-  // Platzhalter oben sauber ersetzen (x^4 - 2x^2 als 5. Fallback-Sonderfall)
-  HARDCODED_FALLBACK_F[6] = [1,0,-2,0,1]; // x^4 - 2x^2 + 1
 
   function fillWithHardcodedFallback(count, existingPairs, existingSeenKeys, existingShapes){
     const pairs = existingPairs.slice();
@@ -315,7 +309,7 @@
   }
 
   // ---------- Spiel-Setup ----------
-  const PAIR_COUNT = 8; // 8 Paare = 16 Karten (4x4-Feld)
+  const PAIR_COUNT = 6; // 6 Paare = 12 Karten (3x4-Feld)
   const TEAL = '#1C6D87';
   const TAN = '#E1B37B';
 
@@ -333,8 +327,9 @@
   const p2card = document.getElementById('p2card');
   const p1score = document.getElementById('p1score');
   const p2score = document.getElementById('p2score');
-  const winBanner = document.getElementById('winBanner');
-  const newGameBtn = document.getElementById('newGameBtn');
+  const winOverlay = document.getElementById('winOverlay');
+  const winMessage = document.getElementById('winMessage');
+  const winNewGameBtn = document.getElementById('winNewGameBtn');
 
   function shuffle(arr){
     for(let i=arr.length-1;i>0;i--){
@@ -446,8 +441,8 @@
       if(scores[0] > scores[1]) msg = '🎉 Spieler 1 gewinnt mit ' + scores[0] + ' zu ' + scores[1] + ' Paaren!';
       else if(scores[1] > scores[0]) msg = '🎉 Spieler 2 gewinnt mit ' + scores[1] + ' zu ' + scores[0] + ' Paaren!';
       else msg = '🤝 Unentschieden! Beide haben ' + scores[0] + ' Paare gefunden.';
-      winBanner.textContent = msg;
-      winBanner.style.display = 'block';
+      winMessage.textContent = msg;
+      winOverlay.classList.add('visible');
     }
   }
 
@@ -460,12 +455,20 @@
     scores = [0,0];
     currentPlayer = 0;
     matchedPairs = 0;
-    winBanner.style.display = 'none';
+    winOverlay.classList.remove('visible');
     updateScoreboard();
     render();
   }
 
-  newGameBtn.addEventListener('click', startNewGame);
+  
+  
+  // Klick auf den abgedunkelten Hintergrund schließt das Popup, ohne
+  // gleich ein neues Spiel zu starten
+  winOverlay.addEventListener('click', (e)=>{
+    if(e.target === winOverlay) winOverlay.classList.remove('visible');
+  });
+
+  winNewGameBtn.addEventListener('click', startNewGame);
 
   startNewGame();
 })();

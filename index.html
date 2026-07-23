@@ -24,7 +24,6 @@
 
     <div class="center-controls">
       <div class="turn-indicator" id="turnIndicator"><span class="turn-dot"></span><span id="turnText">Spieler 1 ist am Zug</span></div>
-      <button class="newgame-btn" id="newGameBtn">Neues Spiel</button>
     </div>
 
     <div class="player-card" id="p2card">
@@ -34,8 +33,13 @@
   </div>
 
   <div class="grid" id="grid"></div>
+</div>
 
-  <div class="win-banner" id="winBanner"></div>
+<div class="win-overlay" id="winOverlay">
+  <div class="win-modal">
+    <div class="win-message" id="winMessage"></div>
+    <button class="newgame-btn win-modal-btn" id="winNewGameBtn">Neues Spiel</button>
+  </div>
 </div>
 
 <script src="script.js"></script>
